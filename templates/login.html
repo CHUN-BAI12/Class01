@@ -1,4 +1,3 @@
-<!-- 调试信息 - 默认管理员账号 用户名: admin 密码: admin123 -->
 {% extends "base.html" %}
 {% block title %}登录 - 用户管理系统{% endblock %}
 {% block content %}
@@ -8,6 +7,7 @@
         <div class="alert alert-error">{{ error }}</div>
     {% endif %}
     <form method="POST" action="/login" class="login-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group">
             <label for="username">用户名</label>
             <input type="text" id="username" name="username" placeholder="请输入用户名" required>
