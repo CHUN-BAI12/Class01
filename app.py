@@ -1,5 +1,6 @@
 import os
 import secrets
+import sqlite3
 from flask import Flask, render_template, request, redirect, session, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -9,6 +10,33 @@ app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24).hex())
 # Session 安全配置
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
+
+def init_db():
+    """初始化 SQLite 数据库，创建 users 表并插入默认用户"""
+    os.makedirs("data", exist_ok=True)
+    conn = sqlite3.connect("data/users.db")
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            email TEXT,
+            phone TEXT
+        )
+    """)
+    # 插入默认用户（密码以明文存储便于演示）
+    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)",
+              ("admin", "admin123", "admin@example.com", "13800138000"))
+    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)",
+              ("alice", "alice2025", "alice@example.com", "13900139001"))
+    conn.commit()
+    conn.close()
+
+
+# 启动时初始化数据库
+init_db()
 
 
 @app.context_processor
@@ -71,6 +99,54 @@ def login():
         else:
             return render_template("login.html", error="用户名或密码错误")
     return render_template("login.html")
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form.get("username", "")
+        password = request.form.get("password", "")
+        email = request.form.get("email", "")
+        phone = request.form.get("phone", "")
+
+        # 使用 f-string 拼接 SQL（有意留漏洞）
+        conn = sqlite3.connect("data/users.db")
+        c = conn.cursor()
+        sql = f"INSERT INTO users (username, password, email, phone) VALUES ('{username}', '{password}', '{email}', '{phone}')"
+        print(f"[SQL] {sql}")
+        try:
+            c.execute(sql)
+            conn.commit()
+            conn.close()
+            return redirect(url_for("login", registered="1"))
+        except Exception as e:
+            conn.close()
+            return render_template("register.html", error=f"注册失败：{str(e)}")
+    return render_template("register.html")
+
+
+@app.route("/search")
+def search():
+    keyword = request.args.get("keyword", "")
+    results = []
+    if keyword:
+        # 使用 f-string 拼接 SQL（有意留漏洞）
+        conn = sqlite3.connect("data/users.db")
+        c = conn.cursor()
+        sql = f"SELECT id, username, email, phone FROM users WHERE username LIKE '%{keyword}%' OR email LIKE '%{keyword}%'"
+        print(f"[SQL] {sql}")
+        c.execute(sql)
+        rows = c.fetchall()
+        for row in rows:
+            results.append({"id": row[0], "username": row[1], "email": row[2], "phone": row[3]})
+        conn.close()
+
+    username = session.get("username")
+    user = None
+    if username and username in USERS:
+        user = {k: v for k, v in USERS[username].items() if k != "password"}
+
+    return render_template("index.html", user=user, results=results, keyword=keyword)
 
 
 @app.route("/logout")
