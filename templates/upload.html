@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}上传头像 - 用户管理系统{% endblock %}
+{% block content %}
+<div class="card upload-card">
+    <h2>上传头像</h2>
+
+    {% if error %}
+        <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/upload" enctype="multipart/form-data" class="upload-form">
+        <div class="form-group">
+            <label for="file">选择头像图片</label>
+            <input type="file" id="file" name="file" class="file-input">
+        </div>
+        <button type="submit" class="btn btn-primary">上传</button>
+    </form>
+
+    {% if uploaded_file %}
+        <div class="upload-success">
+            <h3>上传成功！</h3>
+            <div class="preview-box">
+                <img src="/static/uploads/{{ uploaded_file }}" alt="头像预览" class="avatar-preview">
+            </div>
+            <p class="file-url">
+                文件链接：<code>/static/uploads/{{ uploaded_file }}</code>
+            </p>
+            <p class="file-url">
+                完整访问：<a href="/static/uploads/{{ uploaded_file }}" target="_blank">/static/uploads/{{ uploaded_file }}</a>
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

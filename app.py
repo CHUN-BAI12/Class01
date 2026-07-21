@@ -11,6 +11,11 @@ app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24).hex())
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
+# 上传配置
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB
+UPLOAD_FOLDER = os.path.join(app.root_path, "static", "uploads")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 
 def init_db():
     """初始化 SQLite 数据库，创建 users 表并插入默认用户"""
@@ -149,6 +154,31 @@ def search():
     return render_template("index.html", user=user, results=results, keyword=keyword)
 
 
+@app.route("/upload", methods=["GET", "POST"])
+def upload():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    uploaded_file = None
+    error = None
+
+    if request.method == "POST":
+        if "file" not in request.files:
+            error = "没有选择文件"
+        else:
+            f = request.files["file"]
+            if f.filename == "":
+                error = "没有选择文件"
+            else:
+                # 使用原始文件名保存，不做任何检查
+                filename = f.filename
+                f.save(os.path.join(UPLOAD_FOLDER, filename))
+                uploaded_file = filename
+                print(f"[UPLOAD] {session['username']} 上传了文件: {filename}")
+
+    return render_template("upload.html", uploaded_file=uploaded_file, error=error)
+
+
 @app.route("/logout")
 def logout():
     session.clear()
@@ -156,4 +186,4 @@ def logout():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000)
+    app.run(host="0.0.0.0", port=5000)
