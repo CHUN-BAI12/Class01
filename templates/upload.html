@@ -10,8 +10,8 @@
 
     <form method="POST" action="/upload" enctype="multipart/form-data" class="upload-form">
         <div class="form-group">
-            <label for="file">选择头像图片</label>
-            <input type="file" id="file" name="file" class="file-input">
+            <label for="file">选择头像图片（支持 jpg、png、gif、bmp、webp，最大 16MB）</label>
+            <input type="file" id="file" name="file" class="file-input" accept="image/jpeg,image/png,image/gif,image/bmp,image/webp">
         </div>
         <button type="submit" class="btn btn-primary">上传</button>
     </form>
@@ -23,10 +23,7 @@
                 <img src="/static/uploads/{{ uploaded_file }}" alt="头像预览" class="avatar-preview">
             </div>
             <p class="file-url">
-                文件链接：<code>/static/uploads/{{ uploaded_file }}</code>
-            </p>
-            <p class="file-url">
-                完整访问：<a href="/static/uploads/{{ uploaded_file }}" target="_blank">/static/uploads/{{ uploaded_file }}</a>
+                访问链接：<a href="/static/uploads/{{ uploaded_file }}" target="_blank">/static/uploads/{{ uploaded_file }}</a>
             </p>
         </div>
     {% endif %}

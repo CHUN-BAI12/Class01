@@ -1,8 +1,11 @@
 import os
 import secrets
 import sqlite3
-from flask import Flask, render_template, request, redirect, session, url_for
+import uuid
+import imghdr
+from flask import Flask, render_template, request, redirect, session, url_for, abort
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24).hex())
@@ -15,6 +18,15 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB
 UPLOAD_FOLDER = os.path.join(app.root_path, "static", "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# 允许上传的图片类型
+ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "bmp", "webp"}
+ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/gif", "image/bmp", "image/webp"}
+
+
+def allowed_file(filename):
+    """检查文件扩展名是否合法"""
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def init_db():
@@ -154,6 +166,11 @@ def search():
     return render_template("index.html", user=user, results=results, keyword=keyword)
 
 
+@app.errorhandler(413)
+def too_large(e):
+    return render_template("upload.html", error="文件过大！最大允许 16MB"), 413
+
+
 @app.route("/upload", methods=["GET", "POST"])
 def upload():
     if "username" not in session:
@@ -170,11 +187,38 @@ def upload():
             if f.filename == "":
                 error = "没有选择文件"
             else:
-                # 使用原始文件名保存，不做任何检查
                 filename = f.filename
-                f.save(os.path.join(UPLOAD_FOLDER, filename))
-                uploaded_file = filename
-                print(f"[UPLOAD] {session['username']} 上传了文件: {filename}")
+
+                # 检查文件扩展名
+                if not allowed_file(filename):
+                    error = "不支持的文件类型，仅允许上传图片文件（jpg、png、gif、bmp、webp）"
+                else:
+                    # 检查 MIME 类型
+                    mime_type = f.content_type
+                    if mime_type not in ALLOWED_MIME_TYPES:
+                        error = f"文件内容类型不合法（{mime_type}），仅允许上传图片"
+                    else:
+                        # 读取文件头验证是否为真实图片
+                        file_data = f.read(512)
+                        image_type = imghdr.what(None, file_data)
+                        if image_type is None:
+                            error = "文件内容不是有效的图片格式"
+                        else:
+                            # 重置文件指针
+                            f.seek(0)
+
+                            # 使用 UUID 重命名文件，防止路径穿越和文件覆盖
+                            ext = filename.rsplit(".", 1)[1].lower()
+                            safe_filename = f"{uuid.uuid4().hex}.{ext}"
+                            save_path = os.path.normpath(os.path.join(UPLOAD_FOLDER, safe_filename))
+
+                            # 确保路径仍在 UPLOAD_FOLDER 内（二次防护）
+                            if not save_path.startswith(os.path.normpath(UPLOAD_FOLDER)):
+                                error = "非法的文件路径"
+                            else:
+                                f.save(save_path)
+                                uploaded_file = safe_filename
+                                print(f"[UPLOAD] {session['username']} 上传了文件: {filename} -> {safe_filename}")
 
     return render_template("upload.html", uploaded_file=uploaded_file, error=error)
 
