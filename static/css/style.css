@@ -319,3 +319,45 @@ body {
 .file-url a:hover {
     text-decoration: underline;
 }
+
+/* ===== 个人中心 ===== */
+.profile-card {
+    max-width: 520px;
+    margin: 20px auto;
+}
+
+.balance-value {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #e67e22 !important;
+}
+
+.recharge-section {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.recharge-section h3 {
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 16px;
+}
+
+.recharge-form .form-group {
+    margin-bottom: 16px;
+}
+
+.recharge-form input[type="number"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+}
+
+.recharge-form input[type="number"]:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}

@@ -40,15 +40,22 @@ def init_db():
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             email TEXT,
-            phone TEXT
+            phone TEXT,
+            balance INTEGER DEFAULT 0
         )
     """)
     # 插入默认用户（密码以明文存储便于演示）
-    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)",
-              ("admin", "admin123", "admin@example.com", "13800138000"))
-    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)",
-              ("alice", "alice2025", "alice@example.com", "13900139001"))
+    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone, balance) VALUES (?, ?, ?, ?, ?)",
+              ("admin", "admin123", "admin@example.com", "13800138000", 99999))
+    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone, balance) VALUES (?, ?, ?, ?, ?)",
+              ("alice", "alice2025", "alice@example.com", "13900139001", 100))
     conn.commit()
+    # 兼容旧表：如果 balance 列不存在则添加
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN balance INTEGER DEFAULT 0")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # 列已存在
     conn.close()
 
 
@@ -221,6 +228,72 @@ def upload():
                                 print(f"[UPLOAD] {session['username']} 上传了文件: {filename} -> {safe_filename}")
 
     return render_template("upload.html", uploaded_file=uploaded_file, error=error)
+
+
+@app.route("/profile")
+def profile():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    user_id = request.args.get("user_id", "")
+    user_data = None
+    error = None
+
+    if user_id:
+        conn = sqlite3.connect("data/users.db")
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute("SELECT id, username, email, phone, balance FROM users WHERE id = ?", (user_id,))
+        row = c.fetchone()
+        if row:
+            user_data = dict(row)
+        else:
+            error = "用户不存在"
+        conn.close()
+    else:
+        # 默认查询当前登录用户对应的 ID
+        conn = sqlite3.connect("data/users.db")
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute("SELECT id, username, email, phone, balance FROM users WHERE username = ?", (session["username"],))
+        row = c.fetchone()
+        if row:
+            user_data = dict(row)
+        conn.close()
+
+    return render_template("profile.html", user=user_data, error=error)
+
+
+@app.route("/recharge", methods=["POST"])
+def recharge():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    user_id = request.form.get("user_id", "")
+    amount = request.form.get("amount", "0")
+
+    try:
+        amount = int(amount)
+    except ValueError:
+        amount = 0
+
+    conn = sqlite3.connect("data/users.db")
+    c = conn.cursor()
+    c.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (amount, user_id))
+    conn.commit()
+    conn.close()
+
+    # 同步 USERS 字典中的余额
+    c = sqlite3.connect("data/users.db")
+    c.row_factory = sqlite3.Row
+    cur = c.cursor()
+    cur.execute("SELECT username, balance FROM users WHERE id = ?", (user_id,))
+    row = cur.fetchone()
+    c.close()
+    if row and row["username"] in USERS:
+        USERS[row["username"]]["balance"] = row["balance"]
+
+    return redirect(url_for("profile", user_id=user_id))
 
 
 @app.route("/logout")

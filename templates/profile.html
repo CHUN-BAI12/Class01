@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}个人中心 - 用户管理系统{% endblock %}
+{% block content %}
+<div class="card profile-card">
+    <h2>个人中心</h2>
+
+    {% if error %}
+        <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+
+    {% if user %}
+        <div class="user-info">
+            <h3>用户资料</h3>
+            <table class="info-table">
+                <tr>
+                    <td class="label">ID</td>
+                    <td>{{ user.id }}</td>
+                </tr>
+                <tr>
+                    <td class="label">用户名</td>
+                    <td>{{ user.username }}</td>
+                </tr>
+                <tr>
+                    <td class="label">邮箱</td>
+                    <td>{{ user.email }}</td>
+                </tr>
+                <tr>
+                    <td class="label">手机</td>
+                    <td>{{ user.phone }}</td>
+                </tr>
+                <tr>
+                    <td class="label">余额</td>
+                    <td class="balance-value">{{ user.balance }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="recharge-section">
+            <h3>充值</h3>
+            <form method="POST" action="/recharge" class="recharge-form">
+                <input type="hidden" name="user_id" value="{{ user.id }}">
+                <div class="form-group">
+                    <label for="amount">充值金额</label>
+                    <input type="number" id="amount" name="amount" placeholder="请输入充值金额" required>
+                </div>
+                <button type="submit" class="btn btn-primary">充值</button>
+            </form>
+        </div>
+    {% else %}
+        <p>请先登录后再访问个人中心。</p>
+        <a href="/login" class="btn btn-primary">前往登录</a>
+    {% endif %}
+</div>
+{% endblock %}
