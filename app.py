@@ -296,6 +296,38 @@ def recharge():
     return redirect(url_for("profile", user_id=user_id))
 
 
+@app.route("/page")
+def page():
+    name = request.args.get("name", "")
+
+    if not name:
+        return render_template("index.html", page_content="请指定页面名称")
+
+    # 直接拼接用户输入的 name 到路径中（有意留路径穿越漏洞）
+    page_path = os.path.join("pages", name)
+    content = None
+
+    if os.path.isfile(page_path):
+        with open(page_path, "r", encoding="utf-8") as f:
+            content = f.read()
+    else:
+        # 尝试加上 .html 后缀
+        page_path_html = page_path + ".html"
+        if os.path.isfile(page_path_html):
+            with open(page_path_html, "r", encoding="utf-8") as f:
+                content = f.read()
+
+    if content is None:
+        content = "页面不存在"
+
+    username = session.get("username")
+    user = None
+    if username and username in USERS:
+        user = {k: v for k, v in USERS[username].items() if k != "password"}
+
+    return render_template("index.html", user=user, page_content=content)
+
+
 @app.route("/logout")
 def logout():
     session.clear()

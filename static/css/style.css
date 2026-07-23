@@ -361,3 +361,45 @@ body {
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
 }
+
+/* ===== 动态页面内容 ===== */
+.page-content {
+    font-size: 15px;
+    line-height: 1.8;
+    color: #333;
+}
+
+.page-content h1 {
+    font-size: 22px;
+    margin-bottom: 16px;
+    color: #333;
+}
+
+.page-content h2 {
+    font-size: 17px;
+    margin: 20px 0 8px 0;
+    color: #555;
+}
+
+.page-content p {
+    margin-bottom: 12px;
+    color: #666;
+}
+
+.page-content hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 24px 0;
+}
+
+.page-content em {
+    color: #999;
+    font-style: italic;
+}
+
+.quick-links {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
